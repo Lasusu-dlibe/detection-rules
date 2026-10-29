@@ -1,0 +1,6 @@
+---
+9.6.0:
+  beats: 9.5.0
+  c0f47a30-c0c8-4cef-a3d6-a07499cc5241: /home/lasusu/Projects/cloud-security/detection-rules/custom-rules/lasusu-review/etc/auto-gen-schema.json
+  ecs: 9.5.0
+  endgame: 8.4.0

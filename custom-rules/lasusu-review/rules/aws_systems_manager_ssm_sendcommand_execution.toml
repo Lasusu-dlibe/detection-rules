@@ -1,0 +1,87 @@
+[metadata]
+creation_date = "2026/09/15"
+maturity = "development"
+updated_date = "2026/10/11"
+
+[rule]
+actions = []
+author = ["lasusu"]
+description = """
+Detects remote shell execution submitted through AWS Systems Manager SendCommand. The rule focuses on the AWS-managed
+RunShellScript document because a successful command submission is execution-capable, rather than treating every SSM API call as suspicious.
+"""
+enabled = true
+exceptions_list = []
+false_positives = ["Approved fleet patching, software deployment, or incident-response automation that sends one command to multiple managed instances."]
+filters = []
+from = "now-6m"
+index = [
+    "apm-*-transaction*",
+    "auditbeat-*",
+    "endgame-*",
+    "filebeat-*",
+    "logs-*",
+    "packetbeat-*",
+    "traces-apm*",
+    "winlogbeat-*",
+    "-*elastic-cloud-logs-*",
+]
+interval = "5m"
+language = "kuery"
+license = "Elastic License v2"
+max_signals = 100
+name = "AWS SSM RunShellScript Command Execution"
+note = """## Triage and analysis
+
+Review the actor, source IP, SSM document name, and target instance IDs. CloudTrail confirms command submission, but not command completion or the decrypted command parameters.
+
+Check `GetCommandInvocation`, Systems Manager output, and host or CloudWatch logs to establish whether the command executed and what it did. Investigate unapproved fan-out or commands from unfamiliar identities.
+
+### False positive analysis
+
+Patching and deployment systems can use `AWS-RunShellScript`. Verify the automation identity, maintenance window, document name, and target tags before adding a tightly scoped exception.
+"""
+references = [
+    "https://stratus-red-team.cloud/attack-techniques/AWS/aws.execution.ssm-send-command/",
+    "https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_SendCommand.html",
+]
+related_integrations = []
+required_fields = []
+revision = 1
+risk_score = 73
+risk_score_mapping = []
+rule_id = "713a0eb3-450f-4e84-ab99-6e9e2a7b14f0"
+setup = ""
+severity = "high"
+severity_mapping = []
+tags = ["Domain: Cloud", "Data Source: AWS CloudTrail", "Data Source: AWS Systems Manager", "Tactic: Execution", "Use Case: Threat Detection", "Resources: Investigation Guide"]
+timestamp_override = "event.ingested"
+to = "now"
+type = "query"
+version = 1
+
+query = '''
+data_stream.dataset: "aws.cloudtrail"
+  and event.provider: "ssm.amazonaws.com"
+  and event.action: "SendCommand"
+  and event.outcome: "success"
+  and aws.cloudtrail.flattened.request_parameters.documentName: "AWS-RunShellScript"
+'''
+
+[rule.investigation_fields]
+field_names = ["@timestamp", "aws.cloudtrail.user_identity.arn", "source.ip", "user_agent.original", "aws.cloudtrail.request_parameters", "aws.cloudtrail.response_elements", "cloud.account.id", "cloud.region"]
+
+
+[[rule.threat]]
+framework = "MITRE ATT&CK"
+[[rule.threat.technique]]
+id = "T1651"
+name = "Cloud Administration Command"
+reference = "https://attack.mitre.org/techniques/T1651/"
+subtechnique = []
+
+
+[rule.threat.tactic]
+id = "TA0002"
+name = "Execution"
+reference = "https://attack.mitre.org/tactics/TA0002/"

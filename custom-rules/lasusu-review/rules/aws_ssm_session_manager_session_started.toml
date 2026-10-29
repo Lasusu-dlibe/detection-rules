@@ -1,0 +1,54 @@
+[metadata]
+creation_date = "2026/10/25"
+maturity = "development"
+
+[rule]
+author = ["lasusu"]
+description = '''
+Detects a successful AWS Systems Manager Session Manager session started against an EC2 instance. A session provides interactive remote access and should be reviewed when the initiating identity, source, target, or maintenance context is unexpected.
+'''
+false_positives = ["Approved operations, incident response, or engineering support sessions through Session Manager."]
+from = "now-30m"
+index = ["logs-aws.cloudtrail*"]
+interval = "5m"
+language = "kuery"
+license = "Elastic License v2"
+name = "AWS SSM Session Manager Session Started"
+note = '''
+## Triage and analysis
+
+Review the initiating identity, source IP, target instance ID, session ID, and any adjacent IAM or SSM activity. CloudTrail confirms that an interactive SSM session was established; investigate the instance and Session Manager logs to determine commands executed during the session.
+
+### False positive analysis
+
+Session Manager is a legitimate administration channel. Keep exceptions narrowly scoped to a dedicated support or automation identity and a documented maintenance workflow; do not suppress all StartSession activity.
+'''
+references = ["https://stratus-red-team.cloud/attack-techniques/AWS/aws.execution.ssm-start-session/", "https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_StartSession.html"]
+risk_score = 47
+rule_id = "c3423df6-4414-4940-aba4-8d16d5d726c4"
+severity = "medium"
+tags = ["Domain: Cloud", "Data Source: AWS CloudTrail", "Data Source: AWS Systems Manager", "Tactic: Lateral Movement", "Use Case: Threat Detection", "Resources: Investigation Guide"]
+timestamp_override = "event.ingested"
+type = "query"
+query = '''
+data_stream.dataset: "aws.cloudtrail"
+  and event.provider: "ssm.amazonaws.com"
+  and event.action: "StartSession"
+  and event.outcome: "success"
+'''
+
+[rule.investigation_fields]
+field_names = ["@timestamp", "aws.cloudtrail.user_identity.arn", "source.ip", "user_agent.original", "event.action", "aws.cloudtrail.request_parameters", "aws.cloudtrail.response_elements", "cloud.account.id", "cloud.region"]
+
+[[rule.threat]]
+framework = "MITRE ATT&CK"
+
+[[rule.threat.technique]]
+id = "T1021"
+name = "Remote Services"
+reference = "https://attack.mitre.org/techniques/T1021/"
+
+[rule.threat.tactic]
+id = "TA0008"
+name = "Lateral Movement"
+reference = "https://attack.mitre.org/tactics/TA0008/"

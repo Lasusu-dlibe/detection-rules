@@ -1,0 +1,48 @@
+[metadata]
+creation_date = "2026/10/21"
+maturity = "development"
+updated_date = "2026/10/21"
+
+[rule]
+author = ["lasusu"]
+description = '''
+Detects creation of a SageMaker notebook lifecycle configuration or attachment of one to a notebook instance. Lifecycle scripts execute on the notebook and can be used for persistence or code execution.
+'''
+false_positives = ["Approved data-science platform automation may create or attach lifecycle configurations. Exclude dedicated SageMaker deployment roles only after validation."]
+from = "now-30m"
+index = ["apm-*-transaction*", "auditbeat-*", "endgame-*", "filebeat-*", "logs-*", "packetbeat-*", "traces-apm*", "winlogbeat-*", "-*elastic-cloud-logs-*"]
+interval = "5m"
+language = "kuery"
+license = "Elastic License v2"
+name = "AWS SageMaker Notebook Lifecycle Configuration Changed"
+note = '''
+## Triage and analysis
+
+Review the actor, source IP, user agent, request parameters, and adjacent CloudTrail activity. Confirm that the activity is expected for the responsible workload before creating a narrowly scoped exception.
+
+'''
+references = ["https://stratus-red-team.cloud/attack-techniques/AWS/aws.execution.sagemaker-update-lifecycle-config/", "https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateNotebookInstanceLifecycleConfig.html"]
+risk_score = 73
+rule_id = "c70528da-5369-41be-a935-985bf6d436b9"
+severity = "high"
+tags = ["Domain: Cloud", "Data Source: AWS CloudTrail", "Use Case: Threat Detection"]
+timestamp_override = "event.ingested"
+type = "query"
+query = '''
+data_stream.dataset: "aws.cloudtrail"
+  and event.provider: "sagemaker.amazonaws.com"
+  and event.action: ("CreateNotebookInstanceLifecycleConfig" or "UpdateNotebookInstance")
+  and event.outcome: "success"
+'''
+
+[rule.investigation_fields]
+field_names = [
+  "@timestamp",
+  "aws.cloudtrail.user_identity.arn",
+  "source.ip",
+  "user_agent.original",
+  "event.action",
+  "aws.cloudtrail.request_parameters",
+  "cloud.account.id",
+  "cloud.region"
+]

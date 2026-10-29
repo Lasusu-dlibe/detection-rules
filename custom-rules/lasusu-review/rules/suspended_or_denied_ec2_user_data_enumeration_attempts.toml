@@ -1,0 +1,102 @@
+[metadata]
+creation_date = "2026/09/07"
+maturity = "development"
+updated_date = "2026/10/11"
+
+[rule]
+actions = []
+author = ["lasusu"]
+description = """
+Detects denied attempts to retrieve the userData attribute of an EC2 instance through DescribeInstanceAttribute.
+"""
+enabled = true
+exceptions_list = []
+false_positives = ["Expected debugging or deployment automation using a role that has not yet received DescribeInstanceAttribute permission."]
+filters = []
+from = "now-6m"
+index = [
+    "auditbeat-*",
+    "endgame-*",
+    "filebeat-*",
+    "logs-*",
+    "traces-apm*",
+    "winlogbeat-*",
+    "-*elastic-cloud-logs-*",
+]
+interval = "5m"
+language = "kuery"
+license = "Elastic License v2"
+max_signals = 100
+name = "Suspended or Denied EC2 User Data Enumeration Attempts"
+note = """## Triage and analysis
+
+Review the actor, target instance ID, source IP, and error code. This rule covers denied discovery attempts; a successful user-data retrieval is covered by a separate detection policy because it represents confirmed access.
+
+Verify whether the instance ID exists and whether the role should inspect user data. Multiple failures against unrelated instances should be investigated as reconnaissance.
+
+### False positive analysis
+
+Infrastructure automation may fail during a rollout because of delayed IAM propagation. Validate the deployment identity and ticket before creating an exception.
+"""
+references = [
+    "https://stratus-red-team.cloud/attack-techniques/AWS/aws.discovery.ec2-download-user-data/",
+    "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstanceAttribute.html",
+]
+related_integrations = []
+required_fields = []
+revision = 1
+risk_score = 72
+risk_score_mapping = []
+rule_id = "f5b45e2c-4a21-4181-b4b1-268f454e4ad5"
+setup = ""
+severity = "high"
+severity_mapping = []
+tags = ["Domain: Cloud", "Data Source: AWS CloudTrail", "Data Source: AWS EC2", "Tactic: Discovery", "Use Case: Threat Detection", "Resources: Investigation Guide"]
+timestamp_override = "event.ingested"
+to = "now"
+type = "query"
+version = 1
+
+query = '''
+data_stream.dataset: "aws.cloudtrail"
+  and event.provider: "ec2.amazonaws.com"
+  and event.action: "DescribeInstanceAttribute"
+  and event.outcome: "failure"
+  and aws.cloudtrail.error_code: "Client.UnauthorizedOperation"
+  and aws.cloudtrail.flattened.request_parameters.attribute: "userData"
+'''
+
+[rule.investigation_fields]
+field_names = ["@timestamp", "aws.cloudtrail.user_identity.arn", "source.ip", "user_agent.original", "aws.cloudtrail.flattened.request_parameters.attribute", "aws.cloudtrail.request_parameters", "aws.cloudtrail.error_code", "cloud.account.id", "cloud.region"]
+
+
+[[rule.threat]]
+framework = "MITRE ATT&CK"
+[[rule.threat.technique]]
+id = "T1580"
+name = "Cloud Infrastructure Discovery"
+reference = "https://attack.mitre.org/techniques/T1580/"
+subtechnique = []
+
+
+[rule.threat.tactic]
+id = "TA0007"
+name = "Discovery"
+reference = "https://attack.mitre.org/tactics/TA0007/"
+[[rule.threat]]
+framework = "MITRE ATT&CK"
+[[rule.threat.technique]]
+id = "T1552"
+name = "Unsecured Credentials"
+reference = "https://attack.mitre.org/techniques/T1552/"
+[[rule.threat.technique.subtechnique]]
+id = "T1552.005"
+name = "Cloud Instance Metadata API"
+reference = "https://attack.mitre.org/techniques/T1552/005/"
+
+
+
+[rule.threat.tactic]
+id = "TA0006"
+name = "Credential Access"
+reference = "https://attack.mitre.org/tactics/TA0006/"

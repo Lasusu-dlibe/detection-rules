@@ -1,0 +1,12 @@
+{
+  "apm-*-transaction*": {
+    "aws.cloudtrail.flattened.request_parameters.cidrIp": "keyword",
+    "aws.cloudtrail.flattened.request_parameters.fromPort": "keyword",
+    "aws.cloudtrail.request_parameters": "keyword",
+    "aws.cloudtrail.resources.arn": "keyword",
+    "aws.cloudtrail.user_identity.arn": "keyword"
+  },
+  "auditbeat-*": {
+    "aws.cloudtrail.flattened.request_parameters.attribute": "keyword"
+  }
+}

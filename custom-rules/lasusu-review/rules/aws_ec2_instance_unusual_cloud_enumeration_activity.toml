@@ -1,0 +1,76 @@
+[metadata]
+creation_date = "2026/09/14"
+maturity = "development"
+updated_date = "2026/10/22"
+
+[rule]
+actions = []
+author = ["lasusu"]
+description = """
+Detects cloud and IAM discovery from a session whose STS session name is an EC2 instance ID. This distinguishes
+instance-profile activity from ordinary assumed roles used by Terraform, service integrations, or administrators.
+"""
+enabled = true
+exceptions_list = []
+false_positives = ["Approved inventory or compliance software running under an EC2 instance profile."]
+filters = []
+from = "now-30m"
+index = ["logs-aws.cloudtrail*"]
+interval = "5m"
+language = "kuery"
+license = "Elastic License v2"
+max_signals = 100
+name = "AWS EC2 Instance Unusual Cloud Enumeration Activity"
+note = """## Triage and analysis
+
+Review the instance-profile session ARN, discovery APIs, source IP, and any preceding SSM activity. The STS session name must be an EC2 instance ID, so an ordinary administrator or Terraform assumed role does not match.
+
+Verify that the instance and role normally perform inventory work. Treat failed cross-service enumeration from an unexpected instance as a possible indication of instance-role credential compromise.
+
+### False positive analysis
+
+Do not exclude all EC2 instance roles. Scope any exception to a known inventory role and document the APIs it is permitted to use.
+"""
+references = [
+    "https://stratus-red-team.cloud/attack-techniques/AWS/aws.discovery.ec2-enumerate-from-instance/",
+    "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-event-reference-user-identity.html",
+]
+related_integrations = []
+required_fields = []
+revision = 3
+risk_score = 73
+risk_score_mapping = []
+rule_id = "cd813d4e-e2e1-432a-b379-2ea94e2ad0af"
+setup = ""
+severity = "high"
+severity_mapping = []
+tags = ["Domain: Cloud", "Data Source: AWS CloudTrail", "Data Source: AWS EC2", "Tactic: Discovery", "Use Case: Threat Detection", "Resources: Investigation Guide"]
+timestamp_override = "event.ingested"
+to = "now"
+type = "query"
+version = 1
+
+query = '''
+data_stream.dataset: "aws.cloudtrail"
+  and aws.cloudtrail.user_identity.type: "AssumedRole"
+  and user.id: *i-*
+  and event.action: ("ListBuckets" or "GetAccountSummary" or "ListRoles" or "ListUsers" or "GetAccountAuthorizationDetails")
+'''
+
+[rule.investigation_fields]
+field_names = ["@timestamp", "aws.cloudtrail.user_identity.arn", "source.ip", "user_agent.original", "event.action", "aws.cloudtrail.error_code", "cloud.account.id", "cloud.region"]
+
+
+[[rule.threat]]
+framework = "MITRE ATT&CK"
+[[rule.threat.technique]]
+id = "T1526"
+name = "Cloud Service Discovery"
+reference = "https://attack.mitre.org/techniques/T1526/"
+subtechnique = []
+
+
+[rule.threat.tactic]
+id = "TA0007"
+name = "Discovery"
+reference = "https://attack.mitre.org/tactics/TA0007/"

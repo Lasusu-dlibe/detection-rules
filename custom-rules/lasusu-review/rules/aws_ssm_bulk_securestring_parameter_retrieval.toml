@@ -1,0 +1,64 @@
+[metadata]
+creation_date = "2026/10/26"
+maturity = "development"
+
+[rule]
+author = ["lasusu"]
+description = '''
+Detects repeated batch retrieval of AWS Systems Manager SecureString parameters with decryption enabled. The rule distinguishes a burst of GetParameters calls from an individual GetParameter read, which is more commonly used by application configuration workflows.
+'''
+false_positives = ["Approved deployment, secret-rotation, or configuration automation retrieving SecureString parameters in batches."]
+from = "now-30m"
+index = ["logs-aws.cloudtrail*"]
+interval = "5m"
+language = "kuery"
+license = "Elastic License v2"
+name = "AWS SSM Bulk SecureString Parameter Retrieval with Decryption"
+note = '''
+## Triage and analysis
+
+Review the calling identity, source IP, user agent, requested parameter names, KMS key policy, and adjacent Secrets Manager or IAM activity. The alert means at least five decrypted batch parameter retrievals were requested within the 30-minute lookback; it does not expose decrypted values.
+
+### False positive analysis
+
+Approved deployment and configuration systems can retrieve several SecureStrings. Validate the automation identity, target parameter path, and change context. Scope any exception to a named workload identity and expected parameter prefix rather than suppressing all SSM retrieval.
+'''
+references = ["https://stratus-red-team.cloud/attack-techniques/AWS/aws.credential-access.ssm-retrieve-securestring-parameters/", "https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_GetParameters.html"]
+risk_score = 73
+rule_id = "32b4c89f-47df-432c-8cf0-29a8afc250e9"
+severity = "high"
+tags = ["Domain: Cloud", "Data Source: AWS CloudTrail", "Data Source: AWS Systems Manager", "Tactic: Credential Access", "Use Case: Threat Detection", "Resources: Investigation Guide"]
+timestamp_override = "event.ingested"
+type = "threshold"
+query = '''
+data_stream.dataset: "aws.cloudtrail"
+  and event.provider: "ssm.amazonaws.com"
+  and event.action: "GetParameters"
+  and event.outcome: "success"
+  and aws.cloudtrail.flattened.request_parameters.withDecryption: true
+'''
+
+[rule.threshold]
+field = ["user.id", "source.ip"]
+value = 5
+
+[rule.investigation_fields]
+field_names = ["@timestamp", "user.name", "user.id", "aws.cloudtrail.user_identity.arn", "source.ip", "user_agent.original", "event.action", "aws.cloudtrail.request_parameters", "cloud.account.id", "cloud.region"]
+
+[[rule.threat]]
+framework = "MITRE ATT&CK"
+
+[[rule.threat.technique]]
+id = "T1555"
+name = "Credentials from Password Stores"
+reference = "https://attack.mitre.org/techniques/T1555/"
+
+[[rule.threat.technique.subtechnique]]
+id = "T1555.006"
+name = "Cloud Secrets Management Stores"
+reference = "https://attack.mitre.org/techniques/T1555/006/"
+
+[rule.threat.tactic]
+id = "TA0006"
+name = "Credential Access"
+reference = "https://attack.mitre.org/tactics/TA0006/"

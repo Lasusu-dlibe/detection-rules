@@ -1,0 +1,91 @@
+[metadata]
+creation_date = "2026/09/14"
+maturity = "development"
+updated_date = "2026/10/22"
+
+[rule]
+actions = []
+author = ["lasusu"]
+description = """
+Detects denied attempts to launch high-compute GPU EC2 instances. This rule targets the combination of an unusual instance
+family and a permission or quota failure, which is consistent with early resource-hijacking attempts.
+"""
+enabled = true
+exceptions_list = []
+false_positives = ["Approved capacity testing, quota validation, or GPU deployment attempts that are expected to fail before the quota or IAM policy is granted."]
+filters = []
+from = "now-30m"
+index = ["logs-aws.cloudtrail*"]
+interval = "5m"
+language = "kuery"
+license = "Elastic License v2"
+max_signals = 100
+name = "Denied EC2 High-Compute GPU Instance Launch"
+note = """## Triage and analysis
+
+Confirm the requested instance family, error code, actor, source IP, and related Service Quotas requests. The rule intentionally requires both a GPU family and a denied or quota-limited launch; a generic denied RunInstances request does not match.
+
+Determine whether the actor was approved to provision GPU capacity. Investigate repeated attempts, new source locations, and follow-on IAM policy changes as possible resource hijacking.
+
+### False positive analysis
+
+Engineering teams can trigger this during capacity planning. Validate a ticket or an allow-listed deployment role before suppressing a specific role or region.
+"""
+references = [
+    "https://stratus-red-team.cloud/attack-techniques/AWS/aws.execution.ec2-launch-unusual-instances/",
+    "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html",
+]
+related_integrations = []
+required_fields = []
+revision = 2
+risk_score = 73
+risk_score_mapping = []
+rule_id = "8669a2b1-e9ba-4638-8567-301ab752bc75"
+setup = ""
+severity = "high"
+severity_mapping = []
+tags = ["Domain: Cloud", "Data Source: AWS CloudTrail", "Data Source: AWS EC2", "Tactic: Impact", "Tactic: Execution", "Use Case: Threat Detection", "Resources: Investigation Guide"]
+timestamp_override = "event.ingested"
+to = "now"
+type = "query"
+version = 1
+
+query = '''
+data_stream.dataset: "aws.cloudtrail"
+  and event.provider: "ec2.amazonaws.com"
+  and event.action: "RunInstances"
+  and event.outcome: "failure"
+  and aws.cloudtrail.error_code: ("Client.UnauthorizedOperation" or "VcpuLimitExceeded")
+  and aws.cloudtrail.flattened.request_parameters.instanceType: (p2.* or p3.* or p4.* or p5.* or g3.* or g4.* or g5.* or g6.*)
+'''
+
+[rule.investigation_fields]
+field_names = ["@timestamp", "aws.cloudtrail.user_identity.arn", "source.ip", "user_agent.original", "aws.cloudtrail.request_parameters", "aws.cloudtrail.error_code", "cloud.account.id", "cloud.region"]
+
+
+[[rule.threat]]
+framework = "MITRE ATT&CK"
+[[rule.threat.technique]]
+id = "T1496"
+name = "Resource Hijacking"
+reference = "https://attack.mitre.org/techniques/T1496/"
+subtechnique = []
+
+
+[rule.threat.tactic]
+id = "TA0040"
+name = "Impact"
+reference = "https://attack.mitre.org/tactics/TA0040/"
+[[rule.threat]]
+framework = "MITRE ATT&CK"
+[[rule.threat.technique]]
+id = "T1578"
+name = "Modify Cloud Compute Infrastructure"
+reference = "https://attack.mitre.org/techniques/T1578/"
+subtechnique = []
+
+
+[rule.threat.tactic]
+id = "TA0112"
+name = "Defense Impairment"
+reference = "https://attack.mitre.org/tactics/TA0112/"

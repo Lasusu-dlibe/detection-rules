@@ -1,0 +1,97 @@
+[metadata]
+creation_date = "2026/09/14"
+maturity = "development"
+updated_date = "2026/10/11"
+
+[rule]
+actions = []
+author = ["lasusu"]
+description = """
+Detects modification of an EC2 Security Group allowing unrestricted inbound SSH access (port 22) from the public
+Internet (0.0.0.0/0). Exposing management port 22 publicly exposes compute infrastructure to brute-force attacks,
+unauthorized SSH access, and initial access compromises.
+"""
+enabled = true
+exceptions_list = []
+false_positives = ["An approved bastion host or break-glass maintenance window that intentionally exposes SSH to the Internet for a short period."]
+filters = []
+from = "now-6m"
+index = [
+    "apm-*-transaction*",
+    "auditbeat-*",
+    "endgame-*",
+    "filebeat-*",
+    "logs-*",
+    "packetbeat-*",
+    "traces-apm*",
+    "winlogbeat-*",
+    "-*elastic-cloud-logs-*",
+]
+interval = "5m"
+language = "kuery"
+license = "Elastic License v2"
+max_signals = 100
+name = "AWS EC2 Security Group Opened SSH Port 22 to the Internet"
+note = """## Triage and analysis
+
+Confirm the security group, CIDR, protocol, port range, actor, and affected workload. This rule detects the successful configuration change; it does not prove that an SSH login occurred.
+
+If the exposure is unapproved, revoke the ingress rule, identify instances using the group, and review VPC Flow Logs and host authentication logs for follow-on access.
+
+### False positive analysis
+
+Public SSH can be temporarily approved for a bastion or recovery operation. Prefer a time-bounded exception tied to one security group rather than an identity-wide exception.
+"""
+references = [
+    "https://stratus-red-team.cloud/attack-techniques/AWS/aws.exfiltration.ec2-security-group-open-port-22-ingress/",
+    "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_AuthorizeSecurityGroupIngress.html",
+]
+related_integrations = []
+required_fields = []
+revision = 2
+risk_score = 73
+risk_score_mapping = []
+rule_id = "cf7c305b-f43e-4803-917c-890c7694a7a5"
+setup = ""
+severity = "high"
+severity_mapping = []
+tags = ["Domain: Cloud", "Data Source: AWS CloudTrail", "Data Source: AWS EC2", "Tactic: Initial Access", "Use Case: Threat Detection", "Resources: Investigation Guide"]
+timestamp_override = "event.ingested"
+to = "now"
+type = "query"
+version = 1
+
+query = '''
+data_stream.dataset: "aws.cloudtrail"
+  and event.provider: "ec2.amazonaws.com"
+  and event.action: "AuthorizeSecurityGroupIngress"
+  and event.outcome: "success"
+  and (
+    (
+      aws.cloudtrail.flattened.request_parameters.fromPort: 22
+      and aws.cloudtrail.flattened.request_parameters.cidrIp: ("0.0.0.0/0" or "::/0")
+    )
+    or (
+      aws.cloudtrail.flattened.request_parameters.ipPermissions.items.fromPort: 22
+      and aws.cloudtrail.flattened.request_parameters.ipPermissions.items.ipRanges.items.cidrIp: ("0.0.0.0/0" or "::/0")
+    )
+  )
+'''
+
+[rule.investigation_fields]
+field_names = ["@timestamp", "aws.cloudtrail.user_identity.arn", "source.ip", "user_agent.original", "aws.cloudtrail.flattened.request_parameters.cidrIp", "aws.cloudtrail.flattened.request_parameters.fromPort", "aws.cloudtrail.flattened.request_parameters.ipPermissions.items.ipRanges.items.cidrIp", "aws.cloudtrail.flattened.request_parameters.ipPermissions.items.fromPort", "aws.cloudtrail.request_parameters", "cloud.account.id", "cloud.region"]
+
+
+[[rule.threat]]
+framework = "MITRE ATT&CK"
+[[rule.threat.technique]]
+id = "T1133"
+name = "External Remote Services"
+reference = "https://attack.mitre.org/techniques/T1133/"
+subtechnique = []
+
+
+[rule.threat.tactic]
+id = "TA0001"
+name = "Initial Access"
+reference = "https://attack.mitre.org/tactics/TA0001/"

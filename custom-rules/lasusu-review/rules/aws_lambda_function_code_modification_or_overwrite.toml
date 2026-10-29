@@ -1,0 +1,99 @@
+[metadata]
+creation_date = "2026/09/14"
+maturity = "development"
+updated_date = "2026/10/11"
+
+[rule]
+actions = []
+author = ["lasusu"]
+description = """
+Detects modifications or code overwrites to existing AWS Lambda functions via the UpdateFunctionCode API. Adversaries
+may inject malicious code into existing serverless functions to establish persistent access, backdoor serverless
+workflows, or execute unauthorized code within the cloud environment.
+"""
+enabled = true
+exceptions_list = []
+false_positives = ["Approved CI/CD deployments, rollback operations, and emergency hotfixes that update Lambda code."]
+filters = []
+from = "now-6m"
+index = [
+    "apm-*-transaction*",
+    "auditbeat-*",
+    "endgame-*",
+    "filebeat-*",
+    "logs-*",
+    "packetbeat-*",
+    "traces-apm*",
+    "winlogbeat-*",
+    "-*elastic-cloud-logs-*",
+]
+interval = "5m"
+language = "kuery"
+license = "Elastic License v2"
+max_signals = 100
+name = "AWS Lambda Function Code Modification or Overwrite"
+note = """## Triage and analysis
+
+Review the function name, code source fields, actor, source IP, user agent, and deployment context. A successful UpdateFunctionCode confirms a code change, not malicious code or execution.
+
+Validate the change against the release pipeline, source repository, artifact hash, and change ticket. If unapproved, disable or roll back the function using the incident process and review its execution role, triggers, and recent invocations.
+
+### False positive analysis
+
+Frequent Lambda deployments are expected in mature environments. Prefer exceptions for a specific CI/CD role and repository workflow; do not suppress updates from all deployment identities.
+"""
+references = [
+    "https://stratus-red-team.cloud/attack-techniques/AWS/aws.persistence.lambda-overwrite-code/",
+    "https://docs.aws.amazon.com/lambda/latest/api/API_UpdateFunctionCode.html",
+]
+related_integrations = []
+required_fields = []
+revision = 2
+risk_score = 73
+risk_score_mapping = []
+rule_id = "d6ac3513-f154-413f-9048-535ac2e6c4cf"
+setup = ""
+severity = "high"
+severity_mapping = []
+tags = ["Domain: Cloud", "Data Source: AWS CloudTrail", "Data Source: AWS Lambda", "Tactic: Persistence", "Tactic: Execution", "Use Case: Threat Detection", "Resources: Investigation Guide"]
+timestamp_override = "event.ingested"
+to = "now"
+type = "query"
+version = 1
+
+query = '''
+data_stream.dataset: "aws.cloudtrail"
+  and event.provider: "lambda.amazonaws.com"
+  and event.action: ("UpdateFunctionCode20150331v2" or "UpdateFunctionCode")
+  and event.outcome: "success"
+'''
+
+[rule.investigation_fields]
+field_names = ["@timestamp", "aws.cloudtrail.user_identity.arn", "source.ip", "user_agent.original", "aws.cloudtrail.request_parameters", "aws.cloudtrail.response_elements", "cloud.account.id", "cloud.region"]
+
+
+[[rule.threat]]
+framework = "MITRE ATT&CK"
+[[rule.threat.technique]]
+id = "T1648"
+name = "Serverless Execution"
+reference = "https://attack.mitre.org/techniques/T1648/"
+subtechnique = []
+
+
+[rule.threat.tactic]
+id = "TA0002"
+name = "Execution"
+reference = "https://attack.mitre.org/tactics/TA0002/"
+
+[[rule.threat]]
+framework = "MITRE ATT&CK"
+[[rule.threat.technique]]
+id = "T1648"
+name = "Serverless Execution"
+reference = "https://attack.mitre.org/techniques/T1648/"
+
+[rule.threat.tactic]
+id = "TA0003"
+name = "Persistence"
+reference = "https://attack.mitre.org/tactics/TA0003/"
