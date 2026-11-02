@@ -18,4 +18,6 @@ The SSM SecureString rule is a threshold rule: it requires five successful plura
 
 The Secrets Manager Batch rule is a New Terms rule. It alerts when an account and `user.name` combination first performs a successful `BatchGetSecretValue` within a 10-day history window. Replaying the attack with an identity that already appears in that history is not expected to create another first-seen alert; use a fresh test principal when validating this behavior.
 
+The New Terms rule uses `rule_id=24b847dc-013d-4e65-8325-7bd9687bc35b`. Its earlier threshold implementation used `rule_id=1c4f425c-4fc7-4bc0-9010-a1832d093743`. Kibana cannot overwrite a rule while changing its type, so disable the legacy threshold rule before importing this package; the New Terms rule is created as a separate rule and the legacy rule can then be retired after validation.
+
 Custom schema configuration remains in `_config.yaml`. Successful schema validation or import only proves structural validity; attack, benign and overlap tests are still required to assess detection quality.
